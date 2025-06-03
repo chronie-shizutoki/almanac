@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- 增强PWA配置 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#8e44ad">
+  <!-- 添加iOS主屏图标 -->
+  <link rel="apple-touch-startup-image" href="launch.png">
+  <link rel="apple-touch-icon" href="myicon-192x192.png">
+  <!-- 添加Windows磁贴配置 -->
+  <meta name="msapplication-TileImage" content="myicon-144x144.png">
+  <meta name="msapplication-TileColor" content="#8e44ad">
+  <title>今日黃曆</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #8e44ad;
+      --secondary: #9b59b6;
+      --text: #333;
+      --text-light: #777;
+      --bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --yi-color: #2ecc71;
+      --ji-color: #e74c3c;
+      --toolbar-height: 60px;
+    }
+    
+    .dark-theme {
+      --primary: #9b59b6;
+      --secondary: #8e44ad;
+      --text: #e0e0e0;  /* 调整文字颜色为浅灰色 */
+      --text-light: #b0b0b0;  /* 调亮辅助文字颜色 */
+      --bg: #313131;  /* 修改背景色为深灰色 */
+      --card-bg: #434343;  /* 卡片背景改为中灰色 */
+      --shadow: rgba(0, 0, 0, 0.3);
+      --yi-color: #27ae60;
+      --ji-color: #c0392b;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(circle at 10% 20%, rgba(142, 68, 173, 0.1) 0%, rgba(155, 89, 182, 0.05) 90%);
+    }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: calc(100vh - var(--toolbar-height));
+      gap: 20px;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+    
+    .loading-text {
+      font-size: 1.2rem;
+      color: var(--text-light);
+      text-align: center;
+      max-width: 80%;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      flex: 1;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .date-display {
+      font-size: 1.2rem;
+      color: var(--text-light);
+      background: rgba(0, 0, 0, 0.03);
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 8px 30px var(--shadow);
+      padding: 28px;
+      margin-bottom: 28px;
+      animation: fadeInUp 0.5s ease-out;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 35px var(--shadow);
+    }
+    
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+    }
+    
+    .card-title {
+      font-size: 1.6rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .card-title i {
+      font-size: 1.4rem;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .info-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .info-label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .info-value {
+      font-size: 1.15rem;
+      font-weight: 500;
+      padding-left: 24px;
+    }
+    
+    .yi-ji-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 15px;
+    }
+    
+    .yi-container, .ji-container {
+      flex: 1;
+      padding: 18px;
+      border-radius: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .yi-container {
+      background: rgba(46, 204, 113, 0.08);
+      border: 1px solid rgba(46, 204, 113, 0.15);
+    }
+    
+    .ji-container {
+      background: rgba(231, 76, 60, 0.08);
+      border: 1px solid rgba(231, 76, 60, 0.15);
+    }
+    
+    .yi-title, .ji-title {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      text-align: center;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .yi-title {
+      color: var(--yi-color);
+    }
+    
+    .ji-title {
+      color: var(--ji-color);
+    }
+    
+    .items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    
+    .item {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      transition: transform 0.2s ease;
+    }
+    
+    .item:hover {
+      transform: scale(1.05);
+    }
+    
+    .yi-container .item {
+      background: rgba(46, 204, 113, 0.15);
+      color: var(--yi-color);
+      box-shadow: 0 4px 10px rgba(46, 204, 113, 0.1);
+    }
+    
+    .ji-container .item {
+      background: rgba(231, 76, 60, 0.15);
+      color: var(--ji-color);
+      box-shadow: 0 4px 10px rgba(231, 76, 60, 0.1);
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding: 25px;
+      font-size: 0.9rem;
+      color: var(--text-light);
+      animation: fadeIn 1s ease-out;
+      background: var(--card-bg);
+      border-radius: 16px;
+      margin: 20px;
+      box-shadow: 0 4px 15px var(--shadow);
+    }
+    
+    .retry-btn {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 30px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .retry-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 20px rgba(142, 68, 173, 0.4);
+    }
+    
+    /* 动画 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    @media (max-width: 768px) {
+      .yi-ji-container {
+        flex-direction: column;
+      }
+      
+      .header h1 {
+        font-size: 2.1rem;
+      }
+      
+      .toolbar {
+        padding: 0 15px;
+      }
+      
+      .switch-container {
+        padding: 4px 8px;
+      }
+      
+      .switch-label {
+        font-size: 0.8rem;
+      }
+      
+      .switch {
+        width: 42px;
+        height: 22px;
+      }
+      
+      .slider:before {
+        height: 14px;
+        width: 14px;
+      }
+      
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+      
+      .card {
+        padding: 20px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .toolbar {
+        flex-direction: column;
+        height: auto;
+        padding: 10px;
+        gap: 10px;
+      }
+      
+      .app-title {
+        font-size: 1.3rem;
+      }
+      
+      .controls {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 加载状态 -->
+  <div class="loading-container" id="loadingContainer">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">正在載入黃曆數據，請稍候...</div>
+  </div>
+  
+  <!-- 内容容器 -->
+  <div class="container" id="contentContainer" style="display: none;">
+    <div class="header">
+      <h1 id="pageTitle">今日黃曆</h1>
+      <div class="date-display" id="dateDisplay">加载中...</div>
+    </div>
+    
+    <div id="content"></div>
+    
+    <div class="footer">
+      <p>數據來源於算法庫 · 僅供參考</p>
+      <p>© 2025 靜時 | 黃曆 </p>
+    </div>
+  </div>
+
+  <!-- 使用更稳定的lunar库版本 -->
+  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.2/lunar.min.js"></script>
+  
+  <!-- 简繁体转换库 -->
+  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.min.js"></script>
+
+  <script>
+    // 解决lunar库初始化问题
+    function safeLunarLoad() {
+      // 确保Lunar对象可用
+      if (typeof Lunar === 'undefined' || !Lunar.fromDate) {
+        throw new Error('Lunar库加载失败，请检查网络连接');
+      }
+      
+      // 创建日期对象
+      const now = new Date();
+      if (isNaN(now)) {
+        throw new Error('无效的日期对象');
+      }
+      
+      // 创建农历对象
+      const lunar = Lunar.fromDate(now);
+      if (!lunar) {
+        throw new Error('农历对象创建失败');
+      }
+      
+      return lunar;
+    }
+    
+    // 简繁体转换器
+    const converter = OpenCC.Converter({ from: 'cn', to: 'tw' });
+    
+    // 存储原始数据
+    let lunarData = null;
+    let isTraditional = true; // 强制默认繁体
+    let darkMode = false;
+    
+    // DOM元素
+    const loadingContainer = document.getElementById('loadingContainer');
+    const contentContainer = document.getElementById('contentContainer');
+    const contentEl = document.getElementById('content');
+    const dateDisplay = document.getElementById('dateDisplay');
+    const appTitle = document.getElementById('appTitle');
+    const pageTitle = document.getElementById('pageTitle');
+    const themeSwitch = document.getElementById('themeSwitch');
+    const loadingText = document.getElementById('loadingText');
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 加载用户设置
+      loadUserSettings();
+      
+      // 设置切换监听
+      // 删除语言切换监听
+      
+      // 加载黄历数据
+      setTimeout(loadLunarData, 500); // 确保所有资源加载完成
+    });
+    
+    // 加载用户设置
+    function loadUserSettings() {
+      // 始终使用系统主题设置
+      const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      // 更新主题状态函数
+      const updateTheme = (e) => {
+        darkMode = e.matches;
+        applyTheme();
+      };
+      
+      // 立即设置当前主题
+      darkMode = colorSchemeQuery.matches;
+      applyTheme();
+      
+      // 添加监听器实时响应系统主题变化
+      colorSchemeQuery.addEventListener('change', updateTheme);
+
+      // 更新标题
+      pageTitle.textContent = '今日黃曆';
+    }
+
+    // 应用主题样式
+    function applyTheme() {
+      document.body.classList.toggle('dark-theme', darkMode);
+    }
+
+    // 保存用户设置时增加主题设置标记
+    function saveUserSettings() {
+      localStorage.setItem('isTraditional', isTraditional);
+      localStorage.setItem('darkMode', darkMode);  // 当用户手动切换时设置标记
+    }
+
+    // 切换主题
+    function toggleTheme() {
+      darkMode = themeSwitch.checked;
+      saveUserSettings();
+      applyTheme();
+    }
+    
+    // 加载黄历数据
+    function loadLunarData() {
+      try {
+        loadingText.textContent = "正在初始化农历库...";
+        
+        // 安全加载农历库
+        const lunar = safeLunarLoad();
+        
+        loadingText.textContent = "正在计算黄历数据...";
+        
+        const now = new Date();
+        
+        // 格式化日期
+        const dateStr = now.toLocaleDateString('zh-CN', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        
+        dateDisplay.textContent = dateStr;
+        
+        // 获取节气表
+        const jieqiTable = lunar.getJieQiTable();;
+        const jieqiList = [];
+        for (const [key, value] of Object.entries(jieqiTable)) {
+          jieqiList.push(`${key}: ${value}`);
+        }
+        
+        // 获取当天所有时辰
+        const times = lunar.getTimes();
+        const timeList = [];
+        if (times) {
+          times.forEach(time => {
+            // 强化类型检测：区分日期对象和干支对象
+            let solarDate = null;
+            
+            // 检查是否是干支对象（含有getGan/getZhi方法）
+            if (typeof time === 'object' && time !== null && 
+                typeof time.getGan === 'function' && 
+                typeof time.getZhi === 'function') {
+              // 该对象是干支对象而非日期对象，直接记录名称
+              timeList.push(`${time.name}: 干支时段`);
+              return;
+            }
+            
+            // 常规日期对象处理流程
+            if (time.solar) {
+              if (time.solar instanceof Date) {
+                solarDate = time.solar;
+              } else if (typeof time.solar === 'string') {
+                solarDate = new Date(time.solar);
+                if (isNaN(solarDate)) {
+                  const dateParts = time.solar.match(/(\d{4})-(\d{2})-(\d{2})/);
+                  if (dateParts) {
+                    solarDate = new Date(parseInt(dateParts[1]), parseInt(dateParts[2])-1, parseInt(dateParts[3]));
+                  }
+                }
+              } else if (typeof time.solar === 'number') {
+                solarDate = new Date(time.solar);
+              }
+            }
+            
+            // 格式化有效日期
+            if (solarDate && !isNaN(solarDate)) {
+              const timeStr = `${solarDate.getHours()}:${solarDate.getMinutes()}:${solarDate.getSeconds()}`;
+              timeList.push(`${time.name}: ${solarDate.toISOString().split('T')[0]} ${timeStr}`);
+            } else if (!time.solar) {
+              // 处理无日期信息的情况
+              timeList.push(`${time.name}: 日期信息缺失`);
+            } else {
+              console.warn(`未识别的日期格式：`, time.solar);
+              timeList.push(`${time.name}: 不支持的日期格式`);
+            }
+          });
+        }
+        
+        // 保存数据
+        lunarData = {
+          date: lunar.getMonthInChinese() + '月' + lunar.getDayInChinese() ,  // 修改为仅显示月日
+          ganzhiYear: lunar.getYearInGanZhi(),
+          ganzhiYearLiChun: lunar.getYearInGanZhiByLiChun(),
+          ganzhiYearExact: lunar.getYearInGanZhiExact(),
+          ganzhiMonth: lunar.getMonthInGanZhi(),
+          ganzhiMonthExact: lunar.getMonthInGanZhiExact(),
+          ganzhiDay: lunar.getDayInGanZhi(),
+          ganzhiDayExact: lunar.getDayInGanZhiExact(),
+          zodiacYear: lunar.getYearShengXiao(),
+          zodiacMonth: lunar.getMonthShengXiao(),
+          zodiacDay: lunar.getDayShengXiao(),
+          timeGan: lunar.getTimeGan(),
+          timeZhi: lunar.getTimeZhi(),
+          timeGanzhi: lunar.getTimeInGanZhi(),
+          timeShengxiao: lunar.getTimeShengXiao(),
+          week: lunar.getWeekInChinese(),
+          jieqi: lunar.getJieQi() || '无',
+          prevJieqi: lunar.getPrevJieQi(false) ? lunar.getPrevJieQi(false).getName() : '无',
+          prevJieqiDate: lunar.getPrevJieQi(false) ? lunar.getPrevJieQi(false).getSolar().toYmd() : '无',
+          nextJieqi: lunar.getNextJieQi(false) ? lunar.getNextJieQi(false).getName() : '无',
+          nextJieqiDate: lunar.getNextJieQi(false) ? lunar.getNextJieQi(false).getSolar().toYmd() : '无',
+          jieqiList: jieqiList,
+          timeList: timeList,
+          eightChar: `${lunar.getYearInGanZhi()}年${lunar.getMonthInGanZhi()}月${lunar.getDayInGanZhi()}日${lunar.getTimeInGanZhi()}时`,
+          festivals: lunar.getFestivals() || [],
+          otherFestivals: lunar.getOtherFestivals() || [],
+          lu: lunar.getDayLu() || '无',
+          yi: lunar.getDayYi() || [],
+          ji: lunar.getDayJi() || [],
+          moonPhase: lunar.getYueXiang() || '无'
+        };
+        
+        // 渲染界面
+        renderUI();
+        
+        // 隐藏加载状态，显示内容
+        loadingContainer.style.display = 'none';
+        contentContainer.style.display = 'block';
+        
+      } catch (err) {
+        showError('加载错误: ' + err.message);
+        console.error(err);
+      }
+    }
+    
+    // 渲染UI
+    function renderUI() {
+      // 添加空值检查
+      if (!lunarData) {
+        console.error('lunarData尚未初始化');
+        return;
+      }
+
+      contentEl.innerHTML = `
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-calendar-day"></i>${convertText('農曆信息')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-moon"></i>${convertText('農曆日期')}</div>
+              <div class="info-value">${convertText(lunarData.date)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-dragon"></i>${convertText('干支紀年')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiYear)} (${convertText(lunarData.zodiacYear)})</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-calendar-week"></i>${convertText('星期')}</div>
+              <div class="info-value">${convertText(lunarData.week)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-leaf"></i>${convertText('節氣')}</div>
+              <div class="info-value">${convertText(lunarData.jieqi)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-moon"></i>${convertText('月相')}</div>
+              <div class="info-value">${convertText(lunarData.moonPhase)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-hourglass-half"></i>${convertText('生肖紀時')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-dragon"></i>${convertText('年生肖')}</div>
+              <div class="info-value">${convertText(lunarData.zodiacYear)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-wolf-pack-battalion"></i>${convertText('月生肖')}</div>
+              <div class="info-value">${convertText(lunarData.zodiacMonth)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-cat"></i>${convertText('日生肖')}</div>
+              <div class="info-value">${convertText(lunarData.zodiacDay)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-clock"></i>${convertText('时辰生肖')}</div>
+              <div class="info-value">${convertText(lunarData.timeShengxiao)}</div>
+            </div>
+          </div>
+        </div>
+
+        ${lunarData.festivals.length > 0 || lunarData.otherFestivals.length > 0 ? `
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-gift"></i>${convertText('传统节日')}</h2>
+          ${lunarData.festivals.length > 0 ? `
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label">节日</div>
+              <div class="items">
+                ${lunarData.festivals.map(item => 
+                  `<div class="item">${convertText(item)}</div>`
+                ).join('')}
+              </div>
+            </div>
+          </div>` : ''}
+          ${lunarData.otherFestivals.length > 0 ? `
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label">其他节日</div>
+              <div class="items">
+                ${lunarData.otherFestivals.map(item => 
+                  `<div class="item">${convertText(item)}</div>`
+                ).join('')}
+              </div>
+            </div>
+          </div>` : ''}
+        </div>` : ''}
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-list-check"></i>${convertText('今日宜忌')}</h2>
+          <div class="yi-ji-container">
+            <div class="yi-container">
+              <div class="yi-title"><i class="fas fa-thumbs-up"></i>${convertText('宜')}</div>
+              <div class="items">
+                ${lunarData.yi.map(item => 
+                  `<div class="item">${convertText(item)}</div>`
+                ).join('')}
+              </div>
+            </div>
+            <div class="ji-container">
+              <div class="ji-title"><i class="fas fa-ban"></i>${convertText('忌')}</div>
+              <div class="items">
+                ${lunarData.ji.map(item => 
+                  `<div class="item">${convertText(item)}</div>`
+                ).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-table"></i>${convertText('干支紀時')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass-start"></i>${convertText('年干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiYear)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass-half"></i>${convertText('月干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiMonth)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass-end"></i>${convertText('日干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiDay)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-clock"></i>${convertText('时辰干支')}</div>
+              <div class="info-value">${convertText(lunarData.timeGanzhi)}</div>
+            </div>
+          </div>
+        </div>
+
+        ${lunarData.lu !== '无' ? `
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-medal"></i>${convertText('禄神信息')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-dice"></i>${convertText('日禄')}</div>
+              <div class="info-value">${convertText(lunarData.lu)}</div>
+            </div>
+          </div>
+        </div>` : ''}
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-clock"></i>${convertText('时辰信息')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-font"></i>${convertText('时辰天干')}</div>
+              <div class="info-value">${convertText(lunarData.timeGan)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-paw"></i>${convertText('时辰地支')}</div>
+              <div class="info-value">${convertText(lunarData.timeZhi)}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-sun"></i>${convertText('節氣信息')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-arrow-left"></i>${convertText('上一節氣')}</div>
+              <div class="info-value">${convertText(lunarData.prevJieqi)}（${lunarData.prevJieqiDate}）</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-arrow-right"></i>${convertText('下一節氣')}</div>
+              <div class="info-value">${convertText(lunarData.nextJieqi)}（${lunarData.nextJieqiDate}）</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-star"></i>${convertText('八字基礎')}</h2>
+          <div class="grid">
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-user"></i>${convertText('四柱八字')}</div>
+              <div class="info-value">${convertText(lunarData.eightChar)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass"></i>${convertText('精確年干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiYearExact)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass-half"></i>${convertText('精確月干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiMonthExact)}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label"><i class="fas fa-hourglass-end"></i>${convertText('精確日干支')}</div>
+              <div class="info-value">${convertText(lunarData.ganzhiDayExact)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // 文本转换
+    function convertText(text) {
+      return isTraditional ? converter(text) : text;
+    }
+    
+    // 显示错误
+    function showError(message) {
+      loadingContainer.style.display = 'none';
+      contentContainer.style.display = 'block';
+      
+      contentEl.innerHTML = `
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-exclamation-triangle"></i>${convertText('错误')}</h2>
+          <p style="margin-bottom: 15px; line-height: 1.7;">${message}</p>
+          <p style="margin-bottom: 20px; color: var(--text-light);">请检查网络连接后重试，或稍后再试。</p>
+          <button class="retry-btn" onclick="window.location.reload()">
+            <i class="fas fa-sync-alt"></i>${convertText('重新加载')}
+          </button>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
+
