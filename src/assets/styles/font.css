@@ -1,0 +1,13 @@
+/* 自定义字体配置 */
+@font-face {
+  font-family: 'LXGWWenKai';
+  src: url('./LXGWWenKai-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 确保所有元素使用自定义字体 */
+* {
+  font-family: 'LXGWWenKai', system-ui, sans-serif !important;
+}

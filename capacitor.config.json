@@ -1,0 +1,9 @@
+{
+  "appId": "com.quiettimejsg.almanac",
+  "appName": "黃曆",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "almanac_vue",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:windows": "npm run build && electron-builder --win",
+    "build:android": "npm run build && cap add android && cap sync android"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.4"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^5.7.8",
+    "@capacitor/cli": "^5.7.8",
+    "@capacitor/core": "^5.7.8",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "electron": "^25.3.1",
+    "electron-builder": "^24.4.0",
+    "sharp": "^0.32.1",
+    "vite": "^4.4.6"
+  },
+  "build": {
+    "appId": "com.quiettimejsg.almanac",
+    "productName": "黃曆",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "win": {
+      "icon": "public/myicon-512x512.png",
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "files": [
+      "dist/**/*",
+      "electron.js",
+      "public/**/*"
+    ]
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
