@@ -1,7 +1,7 @@
 /* 自定义字体配置 */
 @font-face {
   font-family: 'LXGWWenKai';
-  src: url('./LXGWWenKai-Regular.ttf') format('truetype');
+  src: url('../LXGWWenKai-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

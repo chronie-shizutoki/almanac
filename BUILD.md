@@ -51,6 +51,19 @@ npm run build:android
 
 然后在 Android Studio 中打开 `android` 目录，构建 APK 或 AAB 文件。
 
+## GitHub CI/CD 自动构建
+
+本项目配置了 GitHub Actions 自动构建流程，位于 `.github/workflows/ci.yml`。每次提交到任何分支时，将自动执行以下任务：
+
+- **构建 Windows 应用包**：在 Windows 环境中构建可执行文件，并上传为工作流 artifacts
+- **构建 Web 版本**：在 Ubuntu 环境中构建静态网页资源，并上传为工作流 artifacts
+
+### 查看构建结果
+1. 访问项目的 GitHub 仓库页面
+2. 点击顶部的 "Actions" 选项卡
+3. 选择对应的工作流运行
+4. 在 "Artifacts" 部分下载构建产物
+
 ## 项目结构说明
 ```
 almanac/
